@@ -13,4 +13,8 @@ apply plugin: 'com.c7.sb-service-chassis'
 
 dependencies {
   implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging'
+  implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+  implementation 'org.flywaydb:flyway-core'
+
+  runtimeOnly 'com.h2database:h2'
 }

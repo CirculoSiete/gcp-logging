@@ -13,7 +13,7 @@ public class FooController {
   @GetMapping("/")
   public Map greeting() {
     log.error("Este es un mensaje de error");
-    log.warn("Este es un mensahe de warn");
+    log.warn("Este es un mensaje de warn");
     log.info("Este es un mensaje de info");
     log.debug("Este es un mensaje de debug");
     log.trace("Este es un mensaje de trace");

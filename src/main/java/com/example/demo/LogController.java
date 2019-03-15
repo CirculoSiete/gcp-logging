@@ -1,74 +1,41 @@
 package com.example.demo;
 
-import com.google.api.gax.paging.Page;
-import com.google.cloud.logging.LogEntry;
-import com.google.cloud.logging.Logging;
-import com.google.cloud.logging.Logging.EntryListOption;
-import com.google.cloud.logging.LoggingOptions;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
-import java.sql.Timestamp;
-import java.util.Date;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
-import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
-import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
+import static org.springframework.http.HttpStatus.ACCEPTED;
 
 @RestController
 public class LogController {
 
-  @GetMapping(path = {"/v1/_logs/{log}", "/v1/_logs"}, produces = APPLICATION_OCTET_STREAM_VALUE)
-  public @ResponseBody
-  byte[] log(HttpServletResponse response,
-             @PathVariable(name = "log", required = false) String log,
-             @RequestParam(name="items",required = false, defaultValue = "3000") Integer ps) throws Exception {
+  private final JdbcTemplate template;
 
-    String stackdriver_log_name = Optional.ofNullable(log).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
-
-    //Integer
-
-
-    LoggingOptions options = LoggingOptions.getDefaultInstance();
-
-    try (Logging logging = options.getService();
-         ByteArrayOutputStream out = new ByteArrayOutputStream();
-         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
-
-      Page<LogEntry> entries =
-        logging.listLogEntries(
-          EntryListOption.filter(
-            "logName=projects/" + options.getProjectId() + "/logs/" + stackdriver_log_name));
-
-      writeLogFile(entries, writer);
-
-      while (entries.hasNextPage()) {
-        entries = entries.getNextPage();
-        writeLogFile(entries, writer);
-      }
-
-      response.addHeader(CONTENT_DISPOSITION, "attachment;filename=\"logs_" + stackdriver_log_name + ".log\"");
-      return out.toByteArray();
-    }
+  public LogController(JdbcTemplate template) {
+    this.template = template;
   }
 
-  private void writeLogFile(Page<LogEntry> entries, BufferedWriter writer) throws Exception {
-    for (LogEntry logEntry : entries.iterateAll()) {
-      Timestamp ts=new Timestamp(logEntry.getTimestamp());
-      Date date=ts;
-      System.out.println(date);
-      //
-      String s = date + " [" + logEntry.getSeverity().toString() + "] " + logEntry.getPayload().getData().toString();
-      System.out.println(s);
+  @ResponseStatus(ACCEPTED)
+  @PostMapping("/v1/_logs")
+  public Map log(@RequestBody LogRequestCommand logRequest) throws Exception {
 
-      //Payload.
-      //System.out.println(logEntry.getPayload().getType());
+    String stackdriver_log_name = Optional.ofNullable(logRequest.getLogName()).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
+    logRequest.setLogName(stackdriver_log_name);
 
-      writer.write(s);
-      writer.newLine();
-    }
+    Optional.ofNullable(logRequest.getNotifyTo())
+      .orElseThrow(() -> new RuntimeException("Es requerido el email para enviar la notificacion"));
+
+    //TODO: validar multiples solicitudes del mismo log en un periodo corto de tiempo
+    String insert = "insert into log_requests (log_name, items, notify_to, notification_media) values (?,?,?,?)";
+    template.update(insert,
+      stackdriver_log_name, logRequest.getItems(), logRequest.getNotifyTo(), logRequest.getNotificationMedia());
+
+    return Collections.singletonMap("created", true);
   }
 }
