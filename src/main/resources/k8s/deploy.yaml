@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: gcp-stackdriver-logging
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,13 +18,13 @@ spec:
         name: gcp-stackdriver-logging
     spec:
       containers:
-        - image: domix/gcp-stackdriver-logging:0.0.1
+        - image: circulo7/gcp-stackdriver-logging:0.0.1
           name: gcp-stackdriver-logging
           imagePullPolicy: Always
           resources:
             limits:
               memory: "320Mi"
-              cpu: "400m"
+              cpu: "250m"
           ports:
             - containerPort: 8080
               protocol: TCP
