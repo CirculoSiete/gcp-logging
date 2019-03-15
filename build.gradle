@@ -1,0 +1,16 @@
+buildscript {
+  repositories {
+    mavenLocal()
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'com.circulosiete.gradle.plugins.boot.chassis:sb-service-chassis-plugin:0.0.11-SNAPSHOT'
+  }
+}
+
+apply plugin: 'com.c7.sb-service-chassis'
+
+dependencies {
+  implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging'
+}

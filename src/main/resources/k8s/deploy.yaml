@@ -1,0 +1,66 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gcp-stackdriver-logging
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      name: gcp-stackdriver-logging
+  template:
+    metadata:
+      labels:
+        name: gcp-stackdriver-logging
+    spec:
+      containers:
+        - image: domix/gcp-stackdriver-logging:0.0.1
+          name: gcp-stackdriver-logging
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "320Mi"
+              cpu: "400m"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 2
+          env:
+            - name: STACKDRIVER_LOG_NAME
+              value: gcp-stackdriver-logging
+            - name: LOG_FLUSH_LEVEL
+              value: INFO
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gcp-stackdriver-logging
+spec:
+  maxReplicas: 8
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 75
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: gcp-stackdriver-logging
