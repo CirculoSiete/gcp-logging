@@ -1,6 +1,6 @@
 package com.circulosiete.gcp.log.extractor.api;
 
-import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
+import com.circulosiete.gcp.log.extractor.model.LogRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,7 +25,7 @@ public class LogController {
 
   @ResponseStatus(ACCEPTED)
   @PostMapping("/v1/_logs")
-  public Map log(@RequestBody LogRequestCommand logRequest) throws Exception {
+  public Map log(@RequestBody LogRequest logRequest) throws Exception {
 
     String stackdriver_log_name = Optional.ofNullable(logRequest.getLogName()).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
     logRequest.setLogName(stackdriver_log_name);

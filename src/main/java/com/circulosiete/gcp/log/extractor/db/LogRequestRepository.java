@@ -1,6 +1,6 @@
 package com.circulosiete.gcp.log.extractor.db;
 
-import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
+import com.circulosiete.gcp.log.extractor.model.LogRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -21,11 +21,11 @@ public class LogRequestRepository {
     return template.queryForList(NEW_LOG_REQUESTS, Long.class);
   }
 
-  public LogRequestCommand getLogRequestCommand(Long id) {
+  public LogRequest getLogRequestCommand(Long id) {
     return template
       .queryForObject(SINGLE_NEW_LOG_REQUEST,
         new Object[]{id, "NEW"},
-        (rs, rowNum) -> LogRequestCommand.builder()
+        (rs, rowNum) -> LogRequest.builder()
           .id(rs.getLong("ID"))
           .items(rs.getInt("items"))
           .logName(rs.getString("log_name"))

@@ -1,7 +1,7 @@
 package com.circulosiete.gcp.log.extractor.service;
 
 import com.circulosiete.gcp.log.extractor.db.LogRequestRepository;
-import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
+import com.circulosiete.gcp.log.extractor.model.LogRequest;
 import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ResourceExhaustedException;
 import com.google.cloud.logging.LogEntry;
@@ -40,7 +40,7 @@ public class LogExtractor {
   }
 
   public void extractLog(Long id) {
-    LogRequestCommand logRequest = repository.getLogRequestCommand(id);
+    LogRequest logRequest = repository.getLogRequestCommand(id);
 
     log.info("Extracting log for id {} and logname {}", id, logRequest.getLogName());
 

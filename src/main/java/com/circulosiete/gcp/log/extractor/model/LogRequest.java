@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LogRequestCommand {
+public class LogRequest {
   private Long id;
   private String logName;
   @Builder.Default
