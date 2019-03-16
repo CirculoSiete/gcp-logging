@@ -17,6 +17,6 @@ public class Runner {
   @Scheduled(fixedDelay = 1000)
   public void logs() {
     log.info("Getting all log requests.");
-    logExtractor.procd();
+    logExtractor.processPendingLogs();
   }
 }

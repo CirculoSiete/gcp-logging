@@ -1,7 +1,7 @@
 package com.circulosiete.gcp.log.extractor.service;
 
-import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
 import com.circulosiete.gcp.log.extractor.db.LogRequestRepository;
+import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
 import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ResourceExhaustedException;
 import com.google.cloud.logging.LogEntry;
@@ -35,7 +35,7 @@ public class LogExtractor {
     this.repository = repository;
   }
 
-  public void procd() {
+  public void processPendingLogs() {
     repository.newLogRequests().forEach(this::extractLog);
   }
 
@@ -131,7 +131,7 @@ public class LogExtractor {
   }
 
   private boolean hasMoreLogData(Page<LogEntry> entries) {
-    return retryWithWait(() -> entries.hasNextPage());
+    return retryWithWait(entries::hasNextPage);
   }
 
   private void waitFor() {
@@ -143,8 +143,8 @@ public class LogExtractor {
   }
 
   private Optional<Page<LogEntry>> getEntries(Logging logging, String filter) {
-    return retryWithWait(() -> Optional.
-      of(logging.listLogEntries(
+    return retryWithWait(() ->
+      Optional.of(logging.listLogEntries(
         Logging.EntryListOption
           .filter(filter))));
   }
@@ -159,6 +159,5 @@ public class LogExtractor {
       writer.newLine();
       System.out.println(s);
     }
-
   }
 }
