@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.circulosiete.gcp.log.extractor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

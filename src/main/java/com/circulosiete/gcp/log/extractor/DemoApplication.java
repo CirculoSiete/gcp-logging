@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.circulosiete.gcp.log.extractor;
 
 import com.google.cloud.logging.Logging;
 import com.google.cloud.logging.LoggingOptions;

@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.circulosiete.gcp.log.extractor;
 
 import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ResourceExhaustedException;
