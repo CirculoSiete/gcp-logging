@@ -44,22 +44,22 @@ public class LogExtractor {
 
     log.info("Extracting log for id {} and logname {}", id, logRequest.getLogName());
 
-    kdfsgjhfsdg(logRequest.getLogName());
+    processRequestedLog(logRequest);
 
     repository.update(id);
     log.info("DONE log id [{}]", id);
   }
 
-  private void kdfsgjhfsdg(String stackdriver_log_name) {
-    log.info("Getting log {}", stackdriver_log_name);
-    Assert.hasText(stackdriver_log_name, "dd");
+  private void processRequestedLog(LogRequest logRequest) {
+    log.info("Getting log {}", logRequest.getLogName());
+    Assert.hasText(logRequest.getLogName(), "dd");
 
     try (ByteArrayOutputStream out = new ByteArrayOutputStream();
          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
 
       String filter =
         "logName=projects/" + loggingOptions.getProjectId() +
-          "/logs/" + stackdriver_log_name;
+          "/logs/" + logRequest.getLogName();
       // "timestamp>=\\\"2019-03-14T02:15:58.979Z\\\"      timestamp<=\\\"2019-03-15T02:15:58.979Z\\\""
 
       Optional<Page<LogEntry>> entries1 = getEntries(logging, filter);
