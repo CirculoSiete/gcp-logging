@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,6 +28,10 @@ public class LogController {
 
     String stackdriver_log_name = Optional.ofNullable(logRequest.getLogName()).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
     logRequest.setLogName(stackdriver_log_name);
+
+    if(!StringUtils.isNotBlank(stackdriver_log_name)) {
+      throw new RuntimeException("El nombre del log es requerido.");
+    }
 
     Optional.ofNullable(logRequest.getNotifyTo())
       .orElseThrow(() -> new RuntimeException("Es requerido el email para enviar la notificacion"));

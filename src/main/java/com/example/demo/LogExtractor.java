@@ -4,12 +4,11 @@ import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ResourceExhaustedException;
 import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
-import com.google.cloud.logging.LoggingException;
 import com.google.cloud.logging.LoggingOptions;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -17,94 +16,135 @@ import java.io.OutputStreamWriter;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
 @Transactional
 public class LogExtractor {
   public static final int WAITING = 1000 * 60 * 2;
-  private final JdbcTemplate template;
+  private final LoggingOptions loggingOptions;
+  private final Logging logging;
+  private final LogRequestRepository repository;
 
-  public LogExtractor(JdbcTemplate template) {
-    this.template = template;
+  public LogExtractor(LoggingOptions loggingOptions, Logging logging, LogRequestRepository repository) {
+    this.loggingOptions = loggingOptions;
+    this.logging = logging;
+    this.repository = repository;
   }
 
-  public void extractLog(Long id) throws Exception {
+  public void procd() {
+    repository.newLogRequests().forEach(this::extractLog);
+  }
 
-    LogRequestCommand logRequest = template.queryForObject("select * from log_requests where ID = ? and status = ?", new Object[]{id, "NEW"},
-      (rs, rowNum) -> LogRequestCommand.builder()
-        .id(rs.getLong("ID"))
-        .build());
+  public void extractLog(Long id) {
+    LogRequestCommand logRequest = repository.getLogRequestCommand(id);
+
+    log.info("Extracting log for id {} and logname {}", id, logRequest.getLogName());
 
     kdfsgjhfsdg(logRequest.getLogName());
-    System.out.println("DONE log id [" + id + "]");
+
+    repository.update(id);
+    log.info("DONE log id [{}]", id);
   }
 
-
-  private byte[] kdfsgjhfsdg(String stackdriver_log_name) throws Exception {
+  private void kdfsgjhfsdg(String stackdriver_log_name) {
     log.info("Getting log {}", stackdriver_log_name);
-    LoggingOptions options = LoggingOptions.getDefaultInstance();
+    Assert.hasText(stackdriver_log_name, "dd");
 
-    try (Logging logging = options.getService();
-         ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
 
       String filter =
-        "logName=projects/" + options.getProjectId() +
-          "/logs/" + stackdriver_log_name;/* +
-          "timestamp>=\\\"2019-03-14T02:15:58.979Z\\\"      timestamp<=\\\"2019-03-15T02:15:58.979Z\\\"";*/
+        "logName=projects/" + loggingOptions.getProjectId() +
+          "/logs/" + stackdriver_log_name;
+      // "timestamp>=\\\"2019-03-14T02:15:58.979Z\\\"      timestamp<=\\\"2019-03-15T02:15:58.979Z\\\""
 
       Optional<Page<LogEntry>> entries1 = getEntries(logging, filter);
 
       if (!entries1.isPresent()) {
         //TODO: limpiar recursos
-        return null;
+        return;
       }
       Page<LogEntry> entries = entries1.get();
 
       writeLogFile(entries, writer);
 
-      while (entries.hasNextPage()) {
-        boolean success = false;
-        while (!success) {
-          try {
-            entries = entries.getNextPage();
-            success = true;
-          } catch (LoggingException ex) {
+      try {
+        while (hasMoreLogData(entries)) {
+          boolean success = false;
+          while (!success) {
+            try {
+              entries = entries.getNextPage();
+              success = true;
+            } catch (Throwable ex) {
 
-            if (ex.getCause() instanceof ResourceExhaustedException) {
-              System.out.println("Entries. API rate limit detected. Waiting a little..");
-              Thread.sleep(WAITING);
-            } else {
-              System.out.println("FAIL: Aborting this execution. Will be performed next time.");
-              //TODO: limpiar recursos
-              return null;
+              if (ex.getCause() instanceof ResourceExhaustedException) {
+                log.info("Entries. API rate limit detected. Waiting a little.. {} millis", WAITING);
+                Thread.sleep(WAITING);
+              } else {
+                log.error("FAIL: Aborting this execution. Will be performed next time.");
+                //TODO: limpiar recursos
+                return;
+              }
             }
           }
+          writeLogFile(entries, writer);
         }
-        writeLogFile(entries, writer);
+      } catch (Throwable t) {
+        waitIfResourceExhaustedException(t);
+        /*if (t.getCause() instanceof ResourceExhaustedException) {
+          log.info("Entries. API rate limit detected. Waiting a little.. {} millis", WAITING);
+          Thread.sleep(WAITING);
+          //TODO: limpiar recursos
+          return;
+        }*/
       }
-      return out.toByteArray();
+
+      //return out.toByteArray();
+    } catch (Throwable e) {
+      log.warn(e.getMessage(), e);
     }
   }
 
-  private Optional<Page<LogEntry>> getEntries(Logging logging, String filter) throws InterruptedException {
+  public <T> T retryWithWait(Supplier<T> f) {
     boolean success = false;
+    T result = null;
     while (!success) {
       try {
-        Optional<Page<LogEntry>> logEntryPage = Optional.of(logging.listLogEntries(
-          Logging.EntryListOption.filter(filter)));
+        result = f.get();
         success = true;
-        return logEntryPage;
-      } catch (LoggingException ex) {
-
-        if (ex.getCause() instanceof ResourceExhaustedException) {
-          log.info("LOG. API rate limit detected. Waiting a little..", ex);
-          Thread.sleep(WAITING);
-        }
+      } catch (Throwable t) {
+        waitIfResourceExhaustedException(t);
       }
     }
-    return Optional.empty();
+
+    return result;
+  }
+
+  private void waitIfResourceExhaustedException(Throwable t) {
+    if (t.getCause() instanceof ResourceExhaustedException) {
+      waitFor();
+    }
+  }
+
+  private boolean hasMoreLogData(Page<LogEntry> entries) {
+    return retryWithWait(() -> entries.hasNextPage());
+  }
+
+  private void waitFor() {
+    try {
+      Thread.sleep(WAITING);
+    } catch (InterruptedException e) {
+      log.error("Very SAD...");
+    }
+  }
+
+  private Optional<Page<LogEntry>> getEntries(Logging logging, String filter) {
+    return retryWithWait(() -> Optional.
+      of(logging.listLogEntries(
+        Logging.EntryListOption
+          .filter(filter))));
   }
 
   private void writeLogFile(Page<LogEntry> entries, BufferedWriter writer) throws Exception {
@@ -115,6 +155,8 @@ public class LogExtractor {
 
       writer.write(s);
       writer.newLine();
+      System.out.println(s);
     }
+
   }
 }
