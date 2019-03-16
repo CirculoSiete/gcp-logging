@@ -1,5 +1,6 @@
-package com.circulosiete.gcp.log.extractor;
+package com.circulosiete.gcp.log.extractor.api;
 
+import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PostMapping;

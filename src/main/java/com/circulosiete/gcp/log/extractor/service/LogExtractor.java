@@ -1,5 +1,7 @@
-package com.circulosiete.gcp.log.extractor;
+package com.circulosiete.gcp.log.extractor.service;
 
+import com.circulosiete.gcp.log.extractor.model.LogRequestCommand;
+import com.circulosiete.gcp.log.extractor.db.LogRequestRepository;
 import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ResourceExhaustedException;
 import com.google.cloud.logging.LogEntry;

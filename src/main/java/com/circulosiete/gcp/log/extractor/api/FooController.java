@@ -1,4 +1,4 @@
-package com.circulosiete.gcp.log.extractor;
+package com.circulosiete.gcp.log.extractor.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

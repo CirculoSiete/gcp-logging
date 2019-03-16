@@ -1,5 +1,6 @@
-package com.circulosiete.gcp.log.extractor;
+package com.circulosiete.gcp.log.extractor.util;
 
+import com.circulosiete.gcp.log.extractor.service.LogExtractor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

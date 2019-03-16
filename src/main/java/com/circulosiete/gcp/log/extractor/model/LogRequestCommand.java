@@ -1,4 +1,4 @@
-package com.circulosiete.gcp.log.extractor;
+package com.circulosiete.gcp.log.extractor.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
