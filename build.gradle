@@ -5,7 +5,7 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.circulosiete.gradle.plugins.boot.chassis:sb-service-chassis-plugin:0.0.11'
+    classpath 'com.circulosiete.gradle.plugins.boot.chassis:sb-service-chassis-plugin:0.0.12'
   }
 }
 
