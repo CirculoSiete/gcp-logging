@@ -17,10 +17,17 @@ spec:
       labels:
         name: gcp-stackdriver-logging
     spec:
+      volumes:
+        # Este volumen se destruira cuando el pod se destruya tambien. Es lo buscado.
+        - name: data-volume
+          emptyDir: {}
       containers:
         - image: circulo7/gcp-stackdriver-logging:0.0.1
           name: gcp-stackdriver-logging
           imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /opt/gcp-log-extractor/
+              name: data-volume
           resources:
             limits:
               memory: "320Mi"
@@ -51,16 +58,20 @@ spec:
               value: gcp-stackdriver-logging
             - name: LOG_FLUSH_LEVEL
               value: INFO
----
-apiVersion: autoscaling/v1
-kind: HorizontalPodAutoscaler
-metadata:
-  name: gcp-stackdriver-logging
-spec:
-  maxReplicas: 8
-  minReplicas: 1
-  targetCPUUtilizationPercentage: 75
-  scaleTargetRef:
-    apiVersion: extensions/v1beta1
-    kind: Deployment
-    name: gcp-stackdriver-logging
+            ## Configuracion del volumen donde se guardaran los archivos de trabajo
+            - name: LOGEXTRACTORBASEDIR
+              value: /opt/gcp-log-extractor/
+            ## configuracion de correo
+            #- name: SPRING_MAIL_HOST
+            #  value: smtp.server.algo
+            #- name: SPRING_MAIL_PORT
+            #  value: 587
+            #- name: SPRING_MAIL_USERNAME
+            #  value: username
+            #- name: SPRING_MAIL_PASSWORD
+            #  value: password
+            ## opcionales
+            #- name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+            #  value: true
+            #- name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+            #  value: true
