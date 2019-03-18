@@ -26,12 +26,14 @@ import java.util.zip.ZipOutputStream;
 @Transactional
 public class LogExtractor {
   public static final int WAITING = 1000 * 60 * 2;
+  private final EmailService emailService;
   private final String baseDir;
   private final LoggingOptions loggingOptions;
   private final Logging logging;
   private final LogRequestRepository repository;
 
-  public LogExtractor(@Value("${files.baseDir}") String baseDir, LoggingOptions loggingOptions, Logging logging, LogRequestRepository repository) throws IOException {
+  public LogExtractor(EmailService emailService, @Value("${files.baseDir}") String baseDir, LoggingOptions loggingOptions, Logging logging, LogRequestRepository repository) throws IOException {
+    this.emailService = emailService;
     this.baseDir = baseDir;
     this.loggingOptions = loggingOptions;
     this.logging = logging;
@@ -146,7 +148,39 @@ public class LogExtractor {
     } catch (Throwable ff) {
       log.error(ff.getMessage(), ff);
     }
+
+    String subject = String
+      .format("Envio de log %s %s",
+        logRequest.getLogName(),
+        new Date());
+
+    try {
+      emailService.sendMessageWithAttachment(logRequest.getNotifyTo(), subject, "Aqui va el log", zipFile);
+    } catch (Throwable t) {
+      log.error(t.getMessage(), t);
+    }
+
+    deleteFile(filename);
+    deleteFile(zipFile);
+
   }
+
+  private void deleteFile(String filename) {
+    try {
+
+      File file = new File(filename);
+
+      if (file.delete()) {
+        log.info(file.getName() + " is deleted!");
+      } else {
+        log.warn("Delete operation is failed. {}", file.getName());
+      }
+
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+    }
+  }
+
 
   public <T> T retryWithWait(Supplier<T> f) {
     boolean success = false;
