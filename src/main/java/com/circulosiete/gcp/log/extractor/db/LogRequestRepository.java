@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public class LogRequestRepository {
-  public static final String INSERT_LOG_REQUEST = "insert into log_requests (log_name, items, notify_to, notification_media) values (?,?,?,?)";
+  public static final String INSERT_LOG_REQUEST = "insert into log_requests (log_name, items, notify_to, notification_media, extra_filter) values (?,?,?,?, ?)";
   public static final String NEW_LOG_REQUESTS = "select id from log_requests where status='NEW'";
   public static final String SINGLE_NEW_LOG_REQUEST = "select * from log_requests where ID = ? and status = ?";
   public static final String UPDATE_TO_DONE_NEW_LOG_REQUEST = "update log_requests set status = ? where id = ? and status = ?";
@@ -26,16 +26,26 @@ public class LogRequestRepository {
       throw new RuntimeException("El nombre del log es requerido.");
     }
 
+    String fi = "";
+    if (StringUtils.isNotBlank(logRequest.getEndDate()) &&
+      StringUtils.isNotBlank(logRequest.getStartDate())) {
+      fi = "timestamp<=\"" + logRequest.getEndDate() + "\" timestamp>=\"" + logRequest.getStartDate() + "\"";
+    }
+
+    logRequest.setFilter(fi);
+
     Optional.ofNullable(logRequest.getNotifyTo())
       .orElseThrow(() -> new RuntimeException("Es requerido el email para enviar la notificacion"));
-    //TODO: validar multiples solicitudes del mismo log en un periodo corto de tiempo
+
+    //TODO: validar multiples solicitudes del mismo log en un periodo corto de tiempo. Prevenirlas
 
     template.update(
       INSERT_LOG_REQUEST,
       logRequest.getLogName(),
       logRequest.getItems(),
       logRequest.getNotifyTo(),
-      logRequest.getNotificationMedia());
+      logRequest.getNotificationMedia(),
+      logRequest.getFilter());
   }
 
   public List<Long> newLogRequests() {
@@ -53,6 +63,7 @@ public class LogRequestRepository {
           .notificationMedia(rs.getString("notification_media"))
           .notifyTo(rs.getString("notify_to"))
           .status(rs.getString("status"))
+          .filter(rs.getString("extra_filter"))
           .build());
   }
 

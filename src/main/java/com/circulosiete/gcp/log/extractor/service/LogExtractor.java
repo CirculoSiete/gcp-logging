@@ -43,6 +43,7 @@ public class LogExtractor {
     LogRequest logRequest = repository.getLogRequestCommand(id);
 
     log.info("Extracting log for id {} and logname {}", id, logRequest.getLogName());
+    log.info("Using filter {}", logRequest.getFilter());
 
     processRequestedLog(logRequest);
 
@@ -58,9 +59,10 @@ public class LogExtractor {
          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
 
       String filter =
-        "logName=projects/" + loggingOptions.getProjectId() +
-          "/logs/" + logRequest.getLogName();
-      // "timestamp>=\\\"2019-03-14T02:15:58.979Z\\\"      timestamp<=\\\"2019-03-15T02:15:58.979Z\\\""
+        String.format("logName=projects/%s/logs/%s %s",
+          loggingOptions.getProjectId(),
+          logRequest.getLogName(),
+          logRequest.getFilter());
 
       Optional<Page<LogEntry>> entries1 = getEntries(logging, filter);
 

@@ -16,4 +16,10 @@ public class LogRequestCommand {
   private String notifyTo;
   @Builder.Default
   private String notificationMedia = "EMAIL";
+  @Builder.Default
+  private String startDate = "";
+  @Builder.Default
+  private String endDate = "";
+  @Builder.Default
+  private String filter = "";
 }

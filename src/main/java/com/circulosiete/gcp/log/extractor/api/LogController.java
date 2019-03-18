@@ -24,10 +24,10 @@ public class LogController {
 
   @ResponseStatus(ACCEPTED)
   @PostMapping("/v1/_logs")
-  public Map log(@RequestBody LogRequestCommand logRequest) throws Exception {
+  public Map log(@RequestBody LogRequestCommand logRequest) {
 
-    String stackdriver_log_name = Optional.ofNullable(logRequest.getLogName()).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
-    logRequest.setLogName(stackdriver_log_name);
+    String logName = Optional.ofNullable(logRequest.getLogName()).orElse(System.getenv("STACKDRIVER_LOG_NAME"));
+    logRequest.setLogName(logName);
 
     repository.insert(logRequest);
 

@@ -19,4 +19,6 @@ public class LogRequest {
   private String notificationMedia = "EMAIL";
   @Builder.Default
   private String status = "NEW";
+  @Builder.Default
+  private String filter = "";
 }
