@@ -25,4 +25,7 @@ HELP.md
 /dist/
 /nbdist/
 /.nb-gradle/
-.logData
+
+
+### Application data ###
+.logextractor

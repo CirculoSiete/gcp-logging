@@ -8,31 +8,37 @@ import com.google.cloud.logging.LogEntry;
 import com.google.cloud.logging.Logging;
 import com.google.cloud.logging.LoggingOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Service
 @Transactional
 public class LogExtractor {
   public static final int WAITING = 1000 * 60 * 2;
+  private final String baseDir;
   private final LoggingOptions loggingOptions;
   private final Logging logging;
   private final LogRequestRepository repository;
 
-  public LogExtractor(LoggingOptions loggingOptions, Logging logging, LogRequestRepository repository) {
+  public LogExtractor(@Value("${files.baseDir}") String baseDir, LoggingOptions loggingOptions, Logging logging, LogRequestRepository repository) throws IOException {
+    this.baseDir = baseDir;
     this.loggingOptions = loggingOptions;
     this.logging = logging;
     this.repository = repository;
+
+    File dir = new File(baseDir);
+    if (!dir.exists()) dir.mkdirs();
   }
 
   public void processPendingLogs() {
@@ -55,8 +61,14 @@ public class LogExtractor {
     log.info("Getting log {}", logRequest.getLogName());
     Assert.hasText(logRequest.getLogName(), "dd");
 
-    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
+    String filename =
+      String.format("%s/%s_%d.log",
+        baseDir,
+        logRequest.getLogName(),
+        logRequest.getId());
+
+    try (Writer writer = new BufferedWriter(new OutputStreamWriter(
+      new FileOutputStream(filename), "utf-8"))) {
 
       String filter =
         String.format("logName=projects/%s/logs/%s %s",
@@ -109,6 +121,31 @@ public class LogExtractor {
     } catch (Throwable e) {
       log.warn(e.getMessage(), e);
     }
+
+    String sourceFile = filename;
+
+    int index = filename.lastIndexOf(".log");
+    String zipbase = filename.substring(0, index);
+
+    String zipFile = zipbase + ".txtzip";
+
+    log.warn("Writing zipfile {}", zipFile);
+
+    try (FileOutputStream fos = new FileOutputStream(zipFile);
+         ZipOutputStream zipOut = new ZipOutputStream(fos);
+    ) {
+      File fileToZip = new File(sourceFile);
+      FileInputStream fis = new FileInputStream(fileToZip);
+      ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
+      zipOut.putNextEntry(zipEntry);
+      byte[] bytes = new byte[1024];
+      int length;
+      while ((length = fis.read(bytes)) >= 0) {
+        zipOut.write(bytes, 0, length);
+      }
+    } catch (Throwable ff) {
+      log.error(ff.getMessage(), ff);
+    }
   }
 
   public <T> T retryWithWait(Supplier<T> f) {
@@ -151,15 +188,15 @@ public class LogExtractor {
           .filter(filter))));
   }
 
-  private void writeLogFile(Page<LogEntry> entries, BufferedWriter writer) throws Exception {
+  private void writeLogFile(Page<LogEntry> entries, Writer writer) throws Exception {
     for (LogEntry logEntry : entries.iterateAll()) {
       Timestamp ts = new Timestamp(logEntry.getTimestamp());
       Date date = ts;
       String s = String.format("%s [%s] %s", date, logEntry.getSeverity().toString(), logEntry.getPayload().getData().toString());
 
       writer.write(s);
-      writer.newLine();
-      System.out.println(s);
+      writer.write("\n");
+      //System.out.println(s);
     }
   }
 }
