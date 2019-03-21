@@ -155,7 +155,10 @@ public class LogExtractor {
         new Date());
 
     try {
-      emailService.sendMessageWithAttachment(logRequest.getNotifyTo(), subject, "Aqui va el log", zipFile);
+      String text = "Log solicitado: " + logRequest.getLogName() +
+        "\nEl archivo va comprimido en fomato ZIP."
+        + "\nEl filtro utilizado para generar la consulta del logs es [" + logRequest.getFilter() + "]";
+      emailService.sendMessageWithAttachment(logRequest.getNotifyTo(), subject, text, zipFile);
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
     }

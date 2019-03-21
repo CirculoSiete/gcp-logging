@@ -21,13 +21,19 @@ spec:
         # Este volumen se destruira cuando el pod se destruya tambien. Es lo buscado.
         - name: data-volume
           emptyDir: {}
+        # Volumen para almacenar el token de GCP
+        - name: google-cloud-key
+          secret:
+            secretName: log-extractor
       containers:
         - image: circulo7/gcp-stackdriver-logging:0.0.1
           name: gcp-stackdriver-logging
           imagePullPolicy: Always
           volumeMounts:
-            - mountPath: /opt/gcp-log-extractor/
-              name: data-volume
+            - name: data-volume
+              mountPath: /opt/gcp-log-extractor/
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
           resources:
             limits:
               memory: "320Mi"
@@ -39,8 +45,8 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8080
-            initialDelaySeconds: 15
-            periodSeconds: 80
+            initialDelaySeconds: 80
+            periodSeconds: 20
             timeoutSeconds: 1
             successThreshold: 1
             failureThreshold: 3
@@ -54,24 +60,23 @@ spec:
             successThreshold: 1
             failureThreshold: 2
           env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
             - name: STACKDRIVER_LOG_NAME
               value: gcp-stackdriver-logging
             - name: LOG_FLUSH_LEVEL
               value: INFO
-            ## Configuracion del volumen donde se guardaran los archivos de trabajo
             - name: LOGEXTRACTORBASEDIR
-              value: /opt/gcp-log-extractor/
-            ## configuracion de correo
-            #- name: SPRING_MAIL_HOST
-            #  value: smtp.server.algo
-            #- name: SPRING_MAIL_PORT
-            #  value: 587
-            #- name: SPRING_MAIL_USERNAME
-            #  value: username
-            #- name: SPRING_MAIL_PASSWORD
-            #  value: password
-            ## opcionales
-            #- name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
-            #  value: true
-            #- name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
-            #  value: true
+              value: ""
+            - name: SPRING_MAIL_HOST
+              value: ""
+            - name: SPRING_MAIL_PORT
+              value: "587"
+            - name: SPRING_MAIL_USERNAME
+              value: ""
+            - name: SPRING_MAIL_PASSWORD
+              value: ""
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+              value: "true"
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+              value: "true"

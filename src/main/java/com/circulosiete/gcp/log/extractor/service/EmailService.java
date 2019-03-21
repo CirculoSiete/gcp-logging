@@ -27,13 +27,16 @@ public class EmailService {
 
     MimeMessageHelper helper = null;
     try {
+      int idx = pathToAttachment.replaceAll("\\\\", "/").lastIndexOf("/");
+      String singleFileName = idx >= 0 ? pathToAttachment.substring(idx + 1) : pathToAttachment;
+
       helper = new MimeMessageHelper(message, true);
       helper.setTo(to);
       helper.setSubject(subject);
       helper.setText(text);
       FileSystemResource file
         = new FileSystemResource(new File(pathToAttachment));
-      helper.addAttachment("Log", file);
+      helper.addAttachment(singleFileName, file);
 
       helper.setFrom(from);
       emailSender.send(message);
