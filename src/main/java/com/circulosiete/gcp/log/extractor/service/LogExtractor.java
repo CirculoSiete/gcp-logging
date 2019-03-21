@@ -199,7 +199,10 @@ public class LogExtractor {
 
   private void waitIfResourceExhaustedException(Throwable t) {
     if (t.getCause() instanceof ResourceExhaustedException) {
+      log.info("API quota reached. Waiting...");
       waitFor();
+    } else {
+      throw new RuntimeException(t.getMessage(), t);
     }
   }
 
