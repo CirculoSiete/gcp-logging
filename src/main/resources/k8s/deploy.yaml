@@ -67,7 +67,7 @@ spec:
             - name: LOG_FLUSH_LEVEL
               value: INFO
             - name: LOGEXTRACTORBASEDIR
-              value: ""
+              value: "/opt/gcp-log-extractor"
             - name: SPRING_MAIL_HOST
               value: ""
             - name: SPRING_MAIL_PORT
